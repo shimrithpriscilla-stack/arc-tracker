@@ -33,14 +33,31 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const pathname = usePathname()
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    let mounted = true
+
+    // getSession() reads directly from localStorage — reliable after PKCE exchange.
+    // onAuthStateChange fires INITIAL_SESSION(null) before async storage resolves,
+    // so we use getSession() to set authReady instead.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
       setAuthReady(true)
     })
 
-    return () => subscription.unsubscribe()
+    // Handle subsequent sign-in / sign-out events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return
+      setSession(session)
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   useEffect(() => {
