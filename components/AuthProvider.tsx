@@ -28,35 +28,28 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [authReady, setAuthReady] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-
-    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
+      setAuthReady(true)
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
-  // Redirect unauthenticated users to login
   useEffect(() => {
-    if (loading) return
+    if (!authReady) return
     const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p))
     if (!user && !isPublic) {
       router.replace('/login')
     }
-  }, [user, loading, pathname, router])
+  }, [user, authReady, pathname, router])
 
   const signOut = async () => {
     await supabase.auth.signOut()
