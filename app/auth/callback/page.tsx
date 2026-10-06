@@ -13,12 +13,21 @@ function AuthCallbackInner() {
     const code = searchParams.get('code')
     if (code) {
       supabase.auth.exchangeCodeForSession(code)
-        .then(() => router.replace('/'))
-        .catch(() => router.replace('/login'))
+        .then(() => {
+          // Full reload instead of client-side navigation.
+          // router.replace('/') can race with React committing the auth state update,
+          // causing AuthProvider to redirect back to /login with stale user=null.
+          // window.location forces a fresh module init, so getSession() reads the
+          // newly-stored session from localStorage before any redirect check runs.
+          window.location.href = '/'
+        })
+        .catch(() => {
+          window.location.href = '/login'
+        })
     } else {
-      router.replace('/login')
+      window.location.href = '/login'
     }
-  }, [router, searchParams])
+  }, [searchParams])
 
   return (
     <div className="min-h-screen bg-[#0F0F1A] flex items-center justify-center">
