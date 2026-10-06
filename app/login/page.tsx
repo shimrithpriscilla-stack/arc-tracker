@@ -11,7 +11,7 @@ export default function LoginPage() {
       provider,
       options: {
         redirectTo: typeof window !== 'undefined'
-          ? window.location.origin + '/'
+          ? window.location.origin + '/auth/callback'
           : '/',
       },
     })
